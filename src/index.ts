@@ -779,6 +779,55 @@ export function createApp(): express.Application {
         }
     });
 
+    // OAuth health check endpoint for VSCode debugging
+    app.get('/oauth/health', (req, res) => {
+        try {
+            const isConfigured = authService.isConfigured();
+            const baseUrl = getBaseUrl(req);
+
+            const health = {
+                status: isConfigured ? 'configured' : 'not_configured',
+                timestamp: new Date().toISOString(),
+                oauth: {
+                    configured: isConfigured,
+                    endpoints: isConfigured ? {
+                        discovery: `${baseUrl}/.well-known/oauth-authorization-server`,
+                        authorize: `${baseUrl}/oauth/authorize`,
+                        token: `${baseUrl}/oauth/token`,
+                        callback: `${baseUrl}/oauth/callback`,
+                        refresh: `${baseUrl}/oauth/refresh`,
+                        userinfo: `${baseUrl}/oauth/userinfo`
+                    } : null,
+                    capabilities: {
+                        pkce: true,
+                        refresh_tokens: true,
+                        client_registration: 'static',
+                        code_challenge_methods: ['S256', 'plain']
+                    }
+                },
+                vscode_compatibility: {
+                    mcp_protocol: '2025-06-18',
+                    transport: ['stdio', 'streamable-http'],
+                    authentication_flows: ['authorization_code', 'authorization_code_with_pkce'],
+                    redirect_uris_supported: [
+                        `${baseUrl}/oauth/callback`,
+                        'http://127.0.0.1:*/oauth/callback',
+                        'http://localhost:*/oauth/callback',
+                        'vscode://callback',
+                        'vscode-insiders://callback'
+                    ]
+                }
+            };
+
+            res.json(health);
+        } catch (error) {
+            res.status(500).json({
+                status: 'error',
+                error: error instanceof Error ? error.message : 'Unknown error'
+            });
+        }
+    });
+
     // OAuth endpoints for XSUAA authentication
     app.get('/oauth/authorize', (req, res) => {
         logger.info(`Start OAuth authorization flow`);

@@ -58,6 +58,10 @@ export class HierarchicalSAPToolRegistry {
             {
                 title: "Level 1: Discover SAP Services and Entities",
                 description: "[LEVEL 1 - DISCOVERY] Search for SAP services and entities. Returns MINIMAL data (serviceId, serviceName, entityName) optimized for LLM decision making. If query matches, returns relevant results. If NO matches found, returns ALL available services with entities. After this call, use get-entity-metadata (Level 2) to get full schema details for your selected entity. Uses technical user (no auth needed).",
+                annotations: {
+                    readOnlyHint: true,
+                    helpText: "Use this to explore available SAP services before executing operations. Searches by service name, entity name, or business category."
+                },
                 inputSchema: {
                     query: z.string().optional().describe("Search term to find services or entities. Searches service names, entity names. Examples: 'customer', 'sales order', 'employee'. If omitted or no matches found, returns ALL services with their entities (minimal fields only)."),
                     category: z.string().optional().describe("Service category filter. Valid values: business-partner, sales, finance, procurement, hr, logistics, all. Default: all. Narrows search to specific business area."),
@@ -75,6 +79,10 @@ export class HierarchicalSAPToolRegistry {
             {
                 title: "Level 2: Get Entity Metadata",
                 description: "[LEVEL 2 - METADATA] Get complete schema details for a specific entity. Returns ALL properties with types, keys, nullable flags, maxLength, and capabilities (creatable, updatable, deletable). Use this after discover-sap-data to get full details needed for execute-sap-operation. Uses technical user (no auth needed).",
+                annotations: {
+                    readOnlyHint: true,
+                    helpText: "Call this after discovering entities to understand their structure before executing operations."
+                },
                 inputSchema: {
                     serviceId: z.string().describe("Service ID from discover-sap-data results. Use the 'serviceId' field exactly as returned."),
                     entityName: z.string().describe("Entity name from discover-sap-data results. Use the 'entityName' field exactly as returned.")
@@ -91,6 +99,9 @@ export class HierarchicalSAPToolRegistry {
             {
                 title: "Level 3: Execute SAP Operation",
                 description: "[LEVEL 3 - EXECUTION] AUTHENTICATION REQUIRED: Perform CRUD operations on SAP entities using authenticated user context. Requires valid JWT token for authorization. Use get-entity-metadata (Level 2) first to understand entity schema, then call this to execute operations. Operations execute under user's SAP identity with full audit trail.",
+                annotations: {
+                    helpText: "Authentication required. Operations execute under your SAP identity with full audit trail. Use get-entity-metadata first to understand entity structure."
+                },
                 inputSchema: {
                     serviceId: z.string().describe("The SAP service ID from discover-sap-data. IMPORTANT: Use the 'id' field from the search results, NOT the 'title' field."),
                     entityName: z.string().describe("The entity name from discover-sap-data. IMPORTANT: Use the 'name' field from the results, NOT the 'entitySet' field."),
