@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "sap-odata-btp": {
+      "type": "http",
+      "url": "https://your-btp-app.cfapps.eu10.hana.ondemand.com/mcp",
+      "transport": "streamable-http",
+      "authentication": {
+        "type": "oauth2",
+        "flow": "authorization_code",
+        "discoveryUrl": "https://your-btp-app.cfapps.eu10.hana.ondemand.com/.well-known/oauth-authorization-server",
+        "clientId": "your-client-id",
+        "clientSecret": "your-client-secret",
+        "redirectUri": "http://127.0.0.1:33418/oauth/callback",
+        "scopes": ["openid", "profile", "email"],
+        "pkce": {
+          "enabled": true,
+          "method": "S256"
+        },
+        "tokenStorage": "vscode-secrets",
+        "autoRefresh": {
+          "enabled": true,
+          "beforeExpirySeconds": 300
+        }
+      },
+      "metadata": {
+        "name": "SAP OData MCP Server",
+        "description": "Access SAP OData services via natural language",
+        "version": "2.0.0"
+      }
+    }
+  }
+}
