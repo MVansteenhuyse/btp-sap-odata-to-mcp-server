@@ -206,9 +206,16 @@ export function createApp(): express.Application {
                 transport: 'streamable-http'
             },
             capabilities: {
-                tools: { listChanged: true },
-                resources: { listChanged: true },
-                logging: {}
+                tools: {
+                    listChanged: true,
+                    dynamicRegistration: true
+                },
+                resources: {
+                    listChanged: true
+                },
+                logging: {
+                    levels: ["error", "warn", "info", "debug"]
+                }
             },
             features: [
                 'OAuth authentication with SAP XSUAA',
@@ -452,6 +459,18 @@ export function createApp(): express.Application {
                     'refresh_token'
                 ],
 
+                // PKCE support (critical for VSCode)
+                code_challenge_methods_supported: ['S256', 'plain'],
+
+                // VSCode-specific redirect URIs (must match xs-security.json configuration)
+                redirect_uris_supported: [
+                    `${baseUrl}/oauth/callback`,              // BTP-hosted callback
+                    'http://localhost:3000/oauth/callback',   // Local dev (matches xs-security.json)
+                    'http://localhost:6274/**',               // Dynamic port pattern (matches xs-security.json)
+                    'vscode://callback',                      // VSCode custom scheme (if configured in XSUAA)
+                    'vscode-insiders://callback'              // VSCode Insiders (if configured in XSUAA)
+                ],
+
                 // Client Registration Support (RFC 7591)
                 registration_endpoint_auth_methods_supported: [
                     'none'  // No authentication required for static client registration
@@ -498,9 +517,6 @@ export function createApp(): express.Application {
                 //     'phone_number'
                 // ],
 
-                // PKCE support
-                code_challenge_methods_supported: ['S256'],
-
                 // Service documentation
                 service_documentation: `${baseUrl}/docs`,
 
@@ -533,6 +549,22 @@ export function createApp(): express.Application {
                     registration_endpoint: `${baseUrl}/oauth/client-registration`,
                     client_id: xsuaaMetadata.clientId,
                     client_authentication_method: 'client_secret_basic'
+                },
+
+                // VSCode-specific guidance
+                'x-vscode-mcp': {
+                    recommended_flow: 'authorization_code_with_pkce',
+                    redirect_uri_template: `${baseUrl}/oauth/callback`,
+                    local_redirect_pattern: 'http://localhost:{port}/oauth/callback',
+                    requires_pkce: true,
+                    token_storage: 'Use VSCode SecretStorage API',
+                    refresh_strategy: 'Automatic refresh 5 minutes before expiry',
+                    important: 'Redirect URIs must be configured in xs-security.json and XSUAA service binding. Use localhost (NOT 127.0.0.1) for local development.',
+                    xsuaa_configuration_required: [
+                        'Add redirect URI to xs-security.json oauth2-configuration.redirect-uris array',
+                        'Redeploy XSUAA service with updated xs-security.json',
+                        'Use localhost (not 127.0.0.1) for XSUAA compatibility'
+                    ]
                 }
             };
 
@@ -811,6 +843,8 @@ export function createApp(): express.Application {
                     authentication_flows: ['authorization_code', 'authorization_code_with_pkce'],
                     redirect_uris_supported: [
                         `${baseUrl}/oauth/callback`,
+                        'http://localhost:3000/oauth/callback',
+                        'http://localhost:6274/**',
                         'http://127.0.0.1:*/oauth/callback',
                         'http://localhost:*/oauth/callback',
                         'vscode://callback',

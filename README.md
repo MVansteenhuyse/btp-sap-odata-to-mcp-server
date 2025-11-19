@@ -325,3 +325,4 @@ This will prevent registration of the ReadEntity tool for all entities and servi
 
 - For local development and testing, see [LOCAL_RUN.md](./docs/LOCAL_RUN.md)
 - For deployment to SAP BTP, see [DEPLOYMENT.md](./docs/DEPLOYMENT.md)
+- For VSCode MCP integration with XSUAA OAuth, see [XSUAA_VSCODE_REQUIREMENTS.md](./docs/XSUAA_VSCODE_REQUIREMENTS.md)

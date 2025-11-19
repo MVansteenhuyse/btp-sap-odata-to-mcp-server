@@ -66,3 +66,152 @@ npm run deploy:btp
 ```
 
 This will upload and deploy the application to your Cloud Foundry space.
+
+### 5. Update XSUAA for VSCode MCP Integration (Optional)
+
+If you plan to use VSCode MCP integration with OAuth authentication:
+
+#### 5.1. Verify xs-security.json Configuration
+
+The `xs-security.json` file already includes VSCode-compatible redirect URIs:
+
+```json
+{
+  "oauth2-configuration": {
+    "redirect-uris": [
+      "https://*.cfapps.*.hana.ondemand.com/**",
+      "http://localhost:3000/oauth/callback",
+      "http://localhost:6274/**"
+    ]
+  }
+}
+```
+
+**Critical Requirements:**
+- ✅ Use `localhost` NOT `127.0.0.1` (XSUAA requirement)
+- ✅ Include fixed port (`http://localhost:3000/oauth/callback`) for standard VSCode setup
+- ✅ Include wildcard pattern (`http://localhost:6274/**`) for dynamic port allocation
+- ✅ BTP wildcard (`https://*.cfapps.*.hana.ondemand.com/**`) for hosted callback
+
+#### 5.2. Update XSUAA Service
+
+After initial deployment, if you need to update XSUAA configuration:
+
+```bash
+# Get your XSUAA service instance name
+cf services | grep xsuaa
+
+# Update the XSUAA service with xs-security.json
+cf update-service <YOUR_XSUAA_SERVICE_NAME> -c xs-security.json
+
+# Wait for update to complete (check status)
+cf service <YOUR_XSUAA_SERVICE_NAME>
+
+# Restage the application to apply changes
+cf restage btp-sap-odata-to-mcp-server
+```
+
+#### 5.3. Verify OAuth Configuration
+
+Test the OAuth endpoints after deployment:
+
+```bash
+# Replace with your actual BTP app URL
+export BTP_APP_URL="https://your-app.cfapps.eu10.hana.ondemand.com"
+
+# Test OAuth discovery endpoint
+curl $BTP_APP_URL/.well-known/oauth-authorization-server | jq
+
+# Test OAuth health check
+curl $BTP_APP_URL/oauth/health | jq
+
+# Test client registration endpoint
+curl $BTP_APP_URL/oauth/client-registration | jq
+```
+
+Expected OAuth health response:
+```json
+{
+  "status": "configured",
+  "oauth": {
+    "configured": true,
+    "capabilities": {
+      "pkce": true,
+      "refresh_tokens": true
+    }
+  },
+  "vscode_compatibility": {
+    "redirect_uris_supported": [
+      "https://your-app.cfapps.eu10.hana.ondemand.com/oauth/callback",
+      "http://localhost:3000/oauth/callback",
+      "http://localhost:6274/**"
+    ]
+  }
+}
+```
+
+#### 5.4. Get Client Credentials for VSCode
+
+```bash
+# View XSUAA credentials from environment
+cf env btp-sap-odata-to-mcp-server | grep -A 20 xsuaa
+
+# Or use the client registration endpoint (includes client_secret)
+curl $BTP_APP_URL/oauth/client-registration | jq
+```
+
+Copy the `client_id` and `client_secret` for your VSCode MCP configuration.
+
+### 6. Configure VSCode MCP Client
+
+Create or update your VSCode MCP settings:
+
+1. Copy `.vscode/settings.example.json` to `.vscode/settings.json`
+2. Update with your BTP app URL and XSUAA credentials:
+
+```json
+{
+  "mcp.servers": {
+    "sap-odata-btp": {
+      "type": "http",
+      "url": "https://your-app.cfapps.eu10.hana.ondemand.com/mcp",
+      "transport": "streamable-http",
+      "authentication": {
+        "type": "oauth2",
+        "flow": "authorization_code",
+        "discoveryUrl": "https://your-app.cfapps.eu10.hana.ondemand.com/.well-known/oauth-authorization-server",
+        "clientId": "sb-btp-sap-odata-to-mcp-server-development!t12345",
+        "clientSecret": "your-xsuaa-client-secret",
+        "redirectUri": "http://localhost:3000/oauth/callback",
+        "scopes": ["openid"],
+        "pkce": {
+          "enabled": true,
+          "method": "S256"
+        }
+      }
+    }
+  }
+}
+```
+
+3. Restart VSCode to apply the configuration
+4. The MCP extension should prompt you to authenticate via OAuth
+
+### 7. Troubleshooting OAuth Issues
+
+**Error: "Invalid redirect_uri"**
+- Verify redirect URI matches exactly in xs-security.json
+- Use `localhost` not `127.0.0.1`
+- Update XSUAA service and restage app
+
+**Error: "redirect_uri_mismatch"**
+- Check for typos in redirect URI
+- Ensure port number matches (3000 or 6274)
+- Verify path is `/oauth/callback`
+
+**OAuth works in Claude Desktop but not VSCode**
+- Different redirect URIs are used
+- Add VSCode-specific URI to xs-security.json
+- Both can coexist in configuration
+
+For detailed troubleshooting, see [XSUAA_VSCODE_REQUIREMENTS.md](./XSUAA_VSCODE_REQUIREMENTS.md).

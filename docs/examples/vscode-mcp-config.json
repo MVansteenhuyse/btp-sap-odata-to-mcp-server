@@ -1,4 +1,10 @@
 {
+  "_comment": "VSCode MCP Configuration for SAP BTP OData Server",
+  "_important": [
+    "XSUAA requires 'localhost' NOT '127.0.0.1'",
+    "Redirect URI must be configured in xs-security.json",
+    "Update xs-security.json and redeploy XSUAA service before testing"
+  ],
   "mcpServers": {
     "sap-odata-btp": {
       "type": "http",
@@ -8,9 +14,10 @@
         "type": "oauth2",
         "flow": "authorization_code",
         "discoveryUrl": "https://your-btp-app.cfapps.eu10.hana.ondemand.com/.well-known/oauth-authorization-server",
-        "clientId": "your-client-id",
-        "clientSecret": "your-client-secret",
-        "redirectUri": "http://127.0.0.1:33418/oauth/callback",
+        "clientId": "your-xsuaa-client-id",
+        "clientSecret": "your-xsuaa-client-secret",
+        "redirectUri": "http://localhost:3000/oauth/callback",
+        "_redirectUri_note": "MUST use localhost (NOT 127.0.0.1) and MUST be configured in xs-security.json",
         "scopes": ["openid", "profile", "email"],
         "pkce": {
           "enabled": true,
@@ -24,9 +31,21 @@
       },
       "metadata": {
         "name": "SAP OData MCP Server",
-        "description": "Access SAP OData services via natural language",
+        "description": "Access SAP OData services via natural language on SAP BTP",
         "version": "2.0.0"
       }
     }
+  },
+  "xsuaa_setup_instructions": {
+    "step_1": "Update xs-security.json to include your VSCode redirect URI",
+    "step_2": "Add to oauth2-configuration.redirect-uris: 'http://localhost:YOUR_PORT/oauth/callback'",
+    "step_3": "Redeploy XSUAA service: cf update-service YOUR_XSUAA_SERVICE -c xs-security.json",
+    "step_4": "Get client credentials from XSUAA service binding",
+    "step_5": "Replace YOUR_PORT with the actual port VSCode MCP uses (e.g., 3000 or 6274)",
+    "important_notes": [
+      "Use 'localhost' not '127.0.0.1' - XSUAA requirement",
+      "Exact redirect URI must match xs-security.json configuration",
+      "XSUAA supports wildcards like 'http://localhost:6274/**' for dynamic ports"
+    ]
   }
 }
